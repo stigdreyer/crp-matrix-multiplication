@@ -651,11 +651,10 @@ var leveldown = require('levelup');
 var Stream = require('stream');
 
 var AuthClient = require('crp-auth-client');
-var JobClient = require('crp-job-client');
-var JobProducerClient = require('crp-job-producer-client');
+var TaskClient = require('crp-task-client');
+var TaskProducerClient = require('crp-task-producer-client');
 
 var extend = require('util')._extend;
-var exec = require('child_process').exec;
 
 
 exports = module.exports = function (options) {
@@ -672,21 +671,21 @@ exports = module.exports = function (options) {
 
   var options = extend(options, defaultOptions);
 
-  var jobClient = JobClient({
+  var taskClient = TaskClient({
       credential: options.credential
     });
 
-  jobClient.jobs.create({
+  taskClient.tasks.create({
       bid: options.bid,
       program: options.program
-    }, afterJobCreated);
+    }, afterTaskCreated);
 
-  function afterJobCreated(err, job) {
+  function afterTaskCreated(err, task) {
       if (err) throw err;
 
-      var data_stream = JobProducerClient({
+      var data_stream = TaskProducerClient({
         credential: options.credential,
-        jobId: job._id
+        taskId: task._id
       });
 
       var db = levelup('./tempresult.db');
