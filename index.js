@@ -647,7 +647,7 @@ var LZString = {
 var fs = require('fs');
 var lazy = require('lazy');
 var levelup = require('levelup');
-var leveldown = require('levelup');
+var leveldown = require('leveldown');
 var Stream = require('stream');
 
 var AuthClient = require('crp-auth-client');
