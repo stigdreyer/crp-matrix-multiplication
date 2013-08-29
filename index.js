@@ -1,9 +1,10 @@
 var fs = require('fs');
-var lazy = require('lazy');
-var levelup = require('levelup');
-var leveldown = require('leveldown');
-var Stream = require('stream');
 var gzip = require('gzip-js');
+var lazy = require('lazy');
+var leveldown = require('leveldown');
+var levelup = require('levelup');
+var multimeter = require('multimeter');
+var Stream = require('stream');
 
 var AuthClient = require('crp-auth-client');
 var TaskClient = require('crp-task-client');
@@ -21,10 +22,11 @@ exports = module.exports = function (options) {
 
   var defaultOptions = { 
     bid: 1e10,
-    program: fs.readFileSync('./build/program.min.js', 'utf8')
+    program: fs.readFileSync('./lib/program.min.js', 'utf8'),
+    debug: false
   }
 
-  var options = extend(options, defaultOptions);
+  var options = extend(defaultOptions, options);
 
   var taskClient = TaskClient({
       credential: options.credential
@@ -43,7 +45,18 @@ exports = module.exports = function (options) {
         taskId: task._id
       });
 
-      console.log('Task ID: ', task._id); //Debug code
+      if(options.debug) {
+        console.log('Task ID: ', task._id);
+
+        //Create progress bar
+        var multi = multimeter(process.stdout);
+        var bar_sent = multi.rel(0, -1, {
+          width: 40
+        });
+        var bar_received = multi.rel(0, -1, {
+          width: 40
+        });
+      }
 
       var db = levelup('./tempresult.db');
 
@@ -159,6 +172,7 @@ exports = module.exports = function (options) {
             cluster++;
             dataunit[0] = cluster;
             sent++;
+            if(options.debug) bar_sent.percent(Math.floor((sent / (clusterPerLine * clusterPerLine)) * 100), 'Sent ' + sent + ' of ' + (clusterPerLine * clusterPerLine) + ' dataunits');
           }
           else {
              dataunit[2] += string + ';';
@@ -169,8 +183,6 @@ exports = module.exports = function (options) {
 
       data_stream.on('result', function(data) {
 
-        //var result_lines = LZString.decompressFromBase64(data[1]);
-        //result_lines = result_lines.split(';');
         result_lines = data[1].split(';');
 
         for (var i = 0; i < result_lines.length; i++) {
@@ -181,10 +193,10 @@ exports = module.exports = function (options) {
         
         received++;
 
-        if(sent > 0) {
-          if(sent === received) {
-            process.nextTick(sendResults);
-          }
+        if(options.debug) bar_received.percent(Math.floor((received / (clusterPerLine * clusterPerLine)) * 100), 'Received ' + received + ' of ' + (clusterPerLine * clusterPerLine) + ' dataunits');
+
+        if(sent === received) {
+          process.nextTick(sendResults);
         }
 
       });
@@ -219,6 +231,12 @@ exports = module.exports = function (options) {
           leveldown.destroy('./tempresult.db', function(err) {
             if(!err) throw new Error('Could not delete temporary database');
             stream.emit('end');
+
+            if(options.debug) {
+              multi.write('\nAll done.\n');
+              multi.destroy();
+            }
+
           });
 
         })

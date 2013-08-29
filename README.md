@@ -26,7 +26,7 @@ var crpMatrixMultiplication = require('crp-matrix-multiplication');
 
 //Replace email & password by your own CrowdProcess login information
 AuthClient.login('email', 'password', function(err, credential) {
-	if (err) throw err;
+    if (err) throw err;
 
   	var options = {
 	   credential: credential,
@@ -46,6 +46,8 @@ AuthClient.login('email', 'password', function(err, credential) {
 });
 
 ```
+
+There is also a debug option that allows you to see the percentage of sent and received dataunits as well as the CrowdProcess task id. Simply add ```debug: true``` to your options.
 
 ## Gotchas
 
